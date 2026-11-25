@@ -21,6 +21,12 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+button:focus-visible,
+input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
 .app {
     width: 100%;
     max-width: 400px;
@@ -122,7 +128,7 @@ body {
 .action-btn {
     background: transparent;
     border: 1px solid var(--line);
-    padding: 5px 12px;
+    padding: 6px 12px;
     border-radius: 16px;
     font-size: 0.75rem;
     color: var(--ink);
@@ -136,9 +142,14 @@ body {
     border-color: var(--ink);
 }
 
-.geo-btn:hover {
+.geo-btn:hover:not(:disabled) {
     background: var(--ink);
     color: var(--bg);
+}
+
+.geo-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 .quick-cities {
@@ -150,7 +161,7 @@ body {
 .city-chip {
     background: transparent;
     border: 1px solid var(--line);
-    padding: 5px 12px;
+    padding: 6px 12px;
     border-radius: 16px;
     font-size: 0.75rem;
     color: var(--ink-muted);
@@ -196,7 +207,7 @@ body {
 .result { min-height: 220px; }
 
 .city-title {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 600;
     color: var(--ink-muted);
     letter-spacing: 0.03em;
@@ -272,4 +283,10 @@ body {
 .loading-text {
     color: var(--ink-muted);
     font-size: 0.88rem;
+}
+
+.result-empty {
+    font-size: 0.85rem;
+    color: var(--ink-muted);
+    padding-top: 8px;
 }

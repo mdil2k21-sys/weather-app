@@ -57,15 +57,17 @@
 
         <!-- Unit Toggle (°C / °F) -->
         <div class="unit-toggle-bar">
-            <span class="unit-label">Satuan Suhu:</span>
+            <span class="unit-label">Satuan:</span>
             <button type="button" id="unitCelsius" class="unit-btn active">°C</button>
             <span class="unit-divider">|</span>
             <button type="button" id="unitFahrenheit" class="unit-btn">°F</button>
         </div>
 
-        <!-- Dynamic Weather Area (Live Region for Accessibility) -->
+        <!-- Dynamic Weather Area -->
         <div id="weatherResult" class="result" aria-live="polite">
-            <!-- Initial state diset lewat JavaScript (default Jakarta / Geolocation) -->
+            <div class="state-box">
+                <p class="result-empty">Pilih kota di atas atau ketik nama kota untuk melihat cuaca.</p>
+            </div>
         </div>
 
     </div>
