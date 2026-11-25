@@ -1,94 +1,219 @@
-// ===========================
-// WEATHER V2 — script.js
-// Open-Meteo API (gratis, no key)
-// ===========================
+// ==========================================
+// WEATHER V2 — script.js (Refactored Clean State)
+// ==========================================
 
+const state = {
+    currentWeather: null,
+    unit: 'C',
+    isLoading: false
+};
+
+const searchForm = document.getElementById('searchForm');
 const cityInput = document.getElementById('cityInput');
 const searchBtn = document.getElementById('searchBtn');
+const geoBtn = document.getElementById('geoBtn');
 const weatherResult = document.getElementById('weatherResult');
-const currentDate = document.getElementById('currentDate');
+const currentDateEl = document.getElementById('currentDate');
+const unitCelsius = document.getElementById('unitCelsius');
+const unitFahrenheit = document.getElementById('unitFahrenheit');
 
-// Tampilin tanggal hari ini di header
+// Set tanggal hari ini
 const today = new Date().toLocaleDateString('id-ID', {
     weekday: 'short', day: 'numeric', month: 'short'
 });
-currentDate.textContent = today;
+if (currentDateEl) currentDateEl.textContent = today;
 
 
-// Event listeners
-searchBtn.addEventListener('click', getWeather);
-cityInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') getWeather();
-});
+// --- HELPERS ---
+const Helpers = {
+    celsiusToFahrenheit(c) { return Math.round((c * 9/5) + 32); },
+    formatTemp(c) { return state.unit === 'F' ? Helpers.celsiusToFahrenheit(c) : Math.round(c); },
+    getWeatherDesc(code) {
+        const map = {
+            0: 'Cerah', 1: 'Cerah berawan', 2: 'Berawan', 3: 'Mendung',
+            45: 'Berkabut', 48: 'Berkabut', 51: 'Gerimis ringan', 53: 'Gerimis',
+            61: 'Hujan ringan', 63: 'Hujan', 65: 'Hujan lebat', 80: 'Hujan lokal', 95: 'Badai petir'
+        };
+        return map[code] ?? 'Kondisi normal';
+    }
+};
 
 
-async function getWeather() {
+// --- API SERVICE ---
+const WeatherAPI = {
+    async getCoordsByCity(cityName) {
+        const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=id`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Gagal terhubung ke server cuaca.');
+        const data = await res.json();
+        if (!data.results || data.results.length === 0) {
+            throw new Error(`Kota "${cityName}" tidak ditemukan.`);
+        }
+        return data.results[0];
+    },
+
+    async getWeatherByCoords(lat, lon, locationName) {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,weather_code&timezone=auto`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Gagal mengambil data prakiraan.');
+        const data = await res.json();
+        return {
+            name: locationName,
+            temp: data.current.temperature_2m,
+            feelsLike: data.current.apparent_temperature,
+            humidity: data.current.relative_humidity_2m,
+            wind: Math.round(data.current.wind_speed_10m),
+            code: data.current.weather_code
+        };
+    }
+};
+
+
+// --- UI RENDERER ---
+const WeatherUI = {
+    renderInitial() {
+        weatherResult.innerHTML = `
+            <div class="state-box">
+                <p class="result-empty">Pilih kota di atas atau ketik nama kota untuk melihat cuaca.</p>
+            </div>
+        `;
+    },
+
+    renderLoading() {
+        weatherResult.innerHTML = `
+            <div class="state-box">
+                <p class="loading-text">Memuat data cuaca...</p>
+            </div>
+        `;
+        searchBtn.disabled = true;
+    },
+
+    renderError(message) {
+        weatherResult.innerHTML = `
+            <div class="state-box">
+                <p class="error-text">⚠️ ${message}</p>
+            </div>
+        `;
+        searchBtn.disabled = false;
+    },
+
+    renderSuccess(data) {
+        const tempVal = Helpers.formatTemp(data.temp);
+        const feelsVal = Helpers.formatTemp(data.feelsLike);
+        const desc = Helpers.getWeatherDesc(data.code);
+
+        weatherResult.innerHTML = `
+            <div class="state-box">
+                <p class="city-title">📍 ${data.name}</p>
+                <div class="temp-display">${tempVal}<span class="temp-unit-symbol">°${state.unit}</span></div>
+                <p class="condition-text">${desc}</p>
+                <div class="data-grid">
+                    <div class="data-item">
+                        <p class="data-label">Suhu Terasa</p>
+                        <p class="data-value">${feelsVal}°${state.unit}</p>
+                    </div>
+                    <div class="data-item">
+                        <p class="data-label">Kelembapan</p>
+                        <p class="data-value">${data.humidity}%</p>
+                    </div>
+                    <div class="data-item">
+                        <p class="data-label">Kecepatan Angin</p>
+                        <p class="data-value">${data.wind} km/h</p>
+                    </div>
+                    <div class="data-item">
+                        <p class="data-label">Status WMO</p>
+                        <p class="data-value">Kode ${data.code}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        searchBtn.disabled = false;
+    }
+};
+
+
+// --- CONTROLLERS ---
+async function fetchAndShowWeather(cityName) {
+    if (state.isLoading) return;
+    state.isLoading = true;
+    WeatherUI.renderLoading();
+
+    try {
+        const location = await WeatherAPI.getCoordsByCity(cityName);
+        const weatherData = await WeatherAPI.getWeatherByCoords(
+            location.latitude,
+            location.longitude,
+            `${location.name}${location.country ? ', ' + location.country : ''}`
+        );
+
+        state.currentWeather = weatherData;
+        WeatherUI.renderSuccess(weatherData);
+    } catch (err) {
+        WeatherUI.renderError(err.message);
+    } finally {
+        state.isLoading = false;
+    }
+}
+
+searchForm.addEventListener('submit', (e) => {
+    e.preventDefault();
     const city = cityInput.value.trim();
-    if (!city) {
-        weatherResult.innerHTML = '<p class="error">Masukin nama kota dulu.</p>';
-        return;
-    }
-
-    weatherResult.innerHTML = '<p class="loading">Mencari...</p>';
-
-    // Step 1: cari koordinat kota
-    const geoURL = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=id`;
-    const geoRes = await fetch(geoURL);
-    const geoData = await geoRes.json();
-
-    if (!geoData.results?.length) {
-        weatherResult.innerHTML = `<p class="error">Kota "${city}" tidak ditemukan.</p>`;
-        return;
-    }
-
-    const { latitude, longitude, name, country } = geoData.results[0];
-
-    // Step 2: ambil data cuaca
-    const weatherURL = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto`;
-    const weatherRes = await fetch(weatherURL);
-    const data = await weatherRes.json();
-
-    const temp = Math.round(data.current.temperature_2m);
-    const humidity = data.current.relative_humidity_2m;
-    const wind = Math.round(data.current.wind_speed_10m);
-    const code = data.current.weather_code;
-    const desc = weatherDesc(code);
-
-    // Step 3: render
-    weatherResult.innerHTML = `
-        <p class="city">${name}, ${country}</p>
-        <div class="temp">${temp}<span class="temp-unit">°C</span></div>
-        <p class="condition">${desc}</p>
-        <div class="data-grid">
-            <div class="data-item">
-                <p class="data-label">Humidity</p>
-                <p class="data-value">${humidity}%</p>
-            </div>
-            <div class="data-item">
-                <p class="data-label">Wind</p>
-                <p class="data-value">${wind} km/h</p>
-            </div>
-        </div>
-    `;
-}
-
-
-function weatherDesc(code) {
-    const map = {
-        0: 'Cerah', 1: 'Cerah berawan', 2: 'Berawan', 3: 'Mendung',
-        45: 'Berkabut', 48: 'Berkabut',
-        51: 'Gerimis', 53: 'Gerimis', 55: 'Gerimis lebat',
-        61: 'Hujan ringan', 63: 'Hujan', 65: 'Hujan lebat',
-        71: 'Salju', 73: 'Salju', 75: 'Salju lebat',
-        80: 'Hujan', 81: 'Hujan', 82: 'Hujan lebat',
-        95: 'Badai', 96: 'Badai + es', 99: 'Badai + es'
-    };
-    return map[code] ?? 'Tidak diketahui';
-}
+    if (!city) return;
+    fetchAndShowWeather(city);
+});
 
 document.querySelectorAll('.city-chip').forEach(button => {
     button.addEventListener('click', () => {
-        cityInput.value = button.dataset.city;
-        getWeather();
+        const city = button.dataset.city;
+        cityInput.value = city;
+        fetchAndShowWeather(city);
     });
 });
+
+geoBtn.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+        alert('Geolocation tidak didukung browser ini.');
+        return;
+    }
+    WeatherUI.renderLoading();
+    navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+            try {
+                const weatherData = await WeatherAPI.getWeatherByCoords(
+                    pos.coords.latitude,
+                    pos.coords.longitude,
+                    'Lokasi Perangkat Anda'
+                );
+                state.currentWeather = weatherData;
+                WeatherUI.renderSuccess(weatherData);
+                state.isLoading = false;
+            } catch (e) {
+                WeatherUI.renderError('Gagal mengambil cuaca dari lokasi.');
+                state.isLoading = false;
+            }
+        },
+        () => {
+            WeatherUI.renderError('Akses lokasi ditolak. Silakan cari manual.');
+        }
+    );
+});
+
+unitCelsius.addEventListener('click', () => {
+    if (state.unit === 'C') return;
+    state.unit = 'C';
+    unitCelsius.classList.add('active');
+    unitFahrenheit.classList.remove('active');
+    if (state.currentWeather) WeatherUI.renderSuccess(state.currentWeather);
+});
+
+unitFahrenheit.addEventListener('click', () => {
+    if (state.unit === 'F') return;
+    state.unit = 'F';
+    unitFahrenheit.classList.add('active');
+    unitCelsius.classList.remove('active');
+    if (state.currentWeather) WeatherUI.renderSuccess(state.currentWeather);
+});
+
+
+// Initial clean state
+WeatherUI.renderInitial();
