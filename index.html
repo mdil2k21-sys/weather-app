@@ -12,14 +12,17 @@
 <body>
 
     <div class="app">
-<a href="https://portofolio-08do.netlify.app" style="font-size:0.8rem; color:#888; text-decoration:none; display:inline-block; margin-bottom:16px;">← Back to Portfolio</a>
+
         <!-- Header -->
         <header class="app-header">
-            <span class="app-title">Weather</span>
+            <div>
+                <a href="https://portofolio-08do.netlify.app" class="back-link">← Portfolio</a>
+                <span class="app-title">Weather</span>
+            </div>
             <span class="app-date" id="currentDate"></span>
         </header>
 
-        <!-- Search -->
+        <!-- Search input + button -->
         <div class="search">
             <input
                 type="text"
@@ -35,9 +38,17 @@
             </button>
         </div>
 
+        <!-- Quick Cities Chips -->
+        <div class="quick-cities">
+            <button class="city-chip" data-city="Jakarta">Jakarta</button>
+            <button class="city-chip" data-city="Bandung">Bandung</button>
+            <button class="city-chip" data-city="Surabaya">Surabaya</button>
+            <button class="city-chip" data-city="Tokyo">Tokyo</button>
+        </div>
+
         <!-- Result -->
         <div id="weatherResult" class="result">
-            <p class="result-empty">Ketik nama kota untuk mulai</p>
+            <p class="result-empty">Ketik nama kota atau pilih kota di atas</p>
         </div>
 
     </div>

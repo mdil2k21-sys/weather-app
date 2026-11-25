@@ -161,3 +161,27 @@ body {
     color: var(--ink-muted);
     padding-top: 8px;
 }
+
+.quick-cities {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.city-chip {
+    background: transparent;
+    border: 1px solid var(--line);
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+
+.city-chip:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+}

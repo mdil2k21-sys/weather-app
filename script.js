@@ -85,3 +85,10 @@ function weatherDesc(code) {
     };
     return map[code] ?? 'Tidak diketahui';
 }
+
+document.querySelectorAll('.city-chip').forEach(button => {
+    button.addEventListener('click', () => {
+        cityInput.value = button.dataset.city;
+        getWeather();
+    });
+});
